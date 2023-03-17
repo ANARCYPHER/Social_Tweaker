@@ -1,6 +1,4 @@
-"""app_tweaker URL Configuration
-
-
+"""ₐₚₚ_ₜwₑₐₖₑᵣ ᵤᵣₗ 𝄴ₒₙ𝆑ᵢgᵤᵣₐₜᵢₒₙ
 """
 
 from django.urls import path
