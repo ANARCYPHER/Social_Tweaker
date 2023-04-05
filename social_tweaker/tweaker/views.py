@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Profile, Meep
 from .forms import MeepForm, SignUpForm, ProfilePicForm
@@ -119,6 +119,23 @@ def update_user(request):
 			return redirect('index')
 
 		return render(request, "update_user.html", {'user_form':user_form, 'profile_form':profile_form})
+	else:
+		messages.success(request, ("You Must Be Logged In To View That Page..."))
+		return redirect('index')
+
+def meep_like(request, pk):
+	if request.user.is_authenticated:
+		meep = get_object_or_404(Meep, id=pk)
+		if meep.likes.filter(id=request.user.id):
+			meep.likes.remove(request.user)
+		else:
+			meep.likes.add(request.user)
+
+		return redirect('index')
+
+
+
+
 	else:
 		messages.success(request, ("You Must Be Logged In To View That Page..."))
 		return redirect('index')
