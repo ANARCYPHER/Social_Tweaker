@@ -7,7 +7,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django import forms
 from django.contrib.auth.models import User
 
-def index(request):
+def home(request):
 	if request.user.is_authenticated:
 		form = MeepForm(request.POST or None)
 		if request.method == "POST":
@@ -16,13 +16,13 @@ def index(request):
 				meep.user = request.user
 				meep.save()
 				messages.success(request, ("Your Meep Has Been Posted!"))
-				return redirect('index')
+				return redirect('home')
 		
 		meeps = Meep.objects.all().order_by("-created_at")
-		return render(request, 'index.html', {"meeps":meeps, "form":form})
+		return render(request, 'home.html', {"meeps":meeps, "form":form})
 	else:
 		meeps = Meep.objects.all().order_by("-created_at")
-		return render(request, 'index.html', {"meeps":meeps})
+		return render(request, 'home.html', {"meeps":meeps})
 
 
 def profile_list(request):
@@ -31,7 +31,7 @@ def profile_list(request):
 		return render(request, 'profile_list.html', {"profiles":profiles})
 	else:
 		messages.success(request, ("You Must Be Logged In To View This Page..."))
-		return redirect('index')
+		return redirect('home')
 
 def unfollow(request, pk):
 	if request.user.is_authenticated:
@@ -48,7 +48,7 @@ def unfollow(request, pk):
 
 	else:
 		messages.success(request, ("You Must Be Logged In To View This Page..."))
-		return redirect('index')
+		return redirect('home')
 
 def follow(request, pk):
 	if request.user.is_authenticated:
@@ -65,7 +65,7 @@ def follow(request, pk):
 
 	else:
 		messages.success(request, ("You Must Be Logged In To View This Page..."))
-		return redirect('index')
+		return redirect('home')
 
 
 
@@ -94,7 +94,32 @@ def profile(request, pk):
 		return render(request, "profile.html", {"profile":profile, "meeps":meeps})
 	else:
 		messages.success(request, ("You Must Be Logged In To View This Page..."))
-		return redirect('index')		
+		return redirect('home')		
+
+def followers(request, pk):
+	if request.user.is_authenticated:
+		if request.user.id == pk:
+			profiles = Profile.objects.get(user_id=pk)
+			return render(request, 'followers.html', {"profiles":profiles})
+		else:
+			messages.success(request, ("That's Not Your Profile Page..."))
+			return redirect('home')	
+	else:
+		messages.success(request, ("You Must Be Logged In To View This Page..."))
+		return redirect('home')
+
+
+def follows(request, pk):
+	if request.user.is_authenticated:
+		if request.user.id == pk:
+			profiles = Profile.objects.get(user_id=pk)
+			return render(request, 'follows.html', {"profiles":profiles})
+		else:
+			messages.success(request, ("That's Not Your Profile Page..."))
+			return redirect('home')	
+	else:
+		messages.success(request, ("You Must Be Logged In To View This Page..."))
+		return redirect('home')
 
 
 
@@ -118,7 +143,7 @@ def login_user(request):
 def logout_user(request):
 	logout(request)
 	messages.success(request, ("You Have Been Logged Out. Sorry to Meep You Go..."))
-	return redirect('index')
+	return redirect('home')
 
 def register_user(request):
 	form = SignUpForm()
@@ -135,7 +160,7 @@ def register_user(request):
 			user = authenticate(username=username, password=password)
 			login(request,user)
 			messages.success(request, ("You have successfully registered! Welcome!"))
-			return redirect('index')
+			return redirect('home')
 	
 	return render(request, "register.html", {'form':form})
 
@@ -153,12 +178,12 @@ def update_user(request):
 
 			login(request, current_user)
 			messages.success(request, ("Your Profile Has Been Updated!"))
-			return redirect('index')
+			return redirect('home')
 
 		return render(request, "update_user.html", {'user_form':user_form, 'profile_form':profile_form})
 	else:
 		messages.success(request, ("You Must Be Logged In To View That Page..."))
-		return redirect('index')
+		return redirect('home')
 	
 def meep_like(request, pk):
 	if request.user.is_authenticated:
@@ -175,7 +200,7 @@ def meep_like(request, pk):
 
 	else:
 		messages.success(request, ("You Must Be Logged In To View That Page..."))
-		return redirect('index')
+		return redirect('home')
 
 
 def meep_show(request, pk):
@@ -184,4 +209,51 @@ def meep_show(request, pk):
 		return render(request, "show_meep.html", {'meep':meep})
 	else:
 		messages.success(request, ("That Meep Does Not Exist..."))
-		return redirect('index')	
+		return redirect('home')		
+
+
+def delete_meep(request, pk):
+	if request.user.is_authenticated:
+		meep = get_object_or_404(Meep, id=pk)
+		# Check to see if you own the meep
+		if request.user.username == meep.user.username:
+			# Delete The Meep
+			meep.delete()
+			
+			messages.success(request, ("The Meep Has Been Deleted!"))
+			return redirect(request.META.get("HTTP_REFERER"))	
+		else:
+			messages.success(request, ("You Don't Own That Meep!!"))
+			return redirect('home')
+
+	else:
+		messages.success(request, ("Please Log In To Continue..."))
+		return redirect(request.META.get("HTTP_REFERER"))
+
+
+def edit_meep(request,pk):
+	if request.user.is_authenticated:
+		# Grab The Meep!
+		meep = get_object_or_404(Meep, id=pk)
+
+		# Check to see if you own the meep
+		if request.user.username == meep.user.username:
+			
+			form = MeepForm(request.POST or None, instance=meep)
+			if request.method == "POST":
+				if form.is_valid():
+					meep = form.save(commit=False)
+					meep.user = request.user
+					meep.save()
+					messages.success(request, ("Your Meep Has Been Updated!"))
+					return redirect('home')
+			else:
+				return render(request, "edit_meep.html", {'form':form, 'meep':meep})
+	
+		else:
+			messages.success(request, ("You Don't Own That Meep!!"))
+			return redirect('home')
+
+	else:
+		messages.success(request, ("Please Log In To Continue..."))
+		return redirect('home')
